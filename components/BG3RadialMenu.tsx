@@ -280,27 +280,47 @@ export const BG3RadialMenu: React.FC<BG3RadialMenuProps> = ({
             ? itemRadialItems 
             : mainActionItems;
 
-    // Geometric parameters for unit-centered 360-degree circular radial menu
+    // Geometric parameters for right-thumb ergonomic radial fan (angles from -180° / left to -10° / top)
     const totalCount = currentRenderItems.length;
-    const radius = 96; // Radius around unit in pixels
+    const radius = 86; // Comfortable thumb radius in pixels
+
+    // Calculate angle for each item in the upper-left quadrant arc (from -170° to -10°)
+    const getItemPosition = (index: number, count: number) => {
+        if (count === 1) {
+            return { x: -radius, y: -radius * 0.5, angle: -Math.PI * 0.75 };
+        }
+        const startAngle = -Math.PI * 0.95; // ~ -171 degrees (leftwards)
+        const endAngle = -Math.PI * 0.08;   // ~ -14 degrees (upwards-right)
+        const angle = startAngle + (index / (count - 1)) * (endAngle - startAngle);
+        return {
+            x: Math.cos(angle) * radius,
+            y: Math.sin(angle) * radius,
+            angle
+        };
+    };
 
     return (
-        <div id="bg3-radial-menu-root" className="relative flex items-center justify-center pointer-events-auto select-none z-50">
-            {/* Active Action Mode Compact Banner (When Radial Menu is Closed for Tile Selection) */}
+        <div id="bg3-radial-menu-root" className="relative flex items-center justify-center pointer-events-auto select-none z-50 mr-4 mb-4">
+            {/* Active Action Mode Banner (When Radial Menu is Closed for Tile Selection) */}
             {!isOpen && activeActionMode !== null && (
                 <AnimatePresence>
                     <motion.div
                         initial={{ opacity: 0, y: -10, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                        className="absolute -top-[120px] left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full border border-amber-500/60 bg-slate-950/95 backdrop-blur-2xl shadow-2xl flex items-center gap-2 z-50 whitespace-nowrap"
+                        className="fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl border border-amber-500/60 bg-slate-950/95 backdrop-blur-2xl shadow-2xl flex items-center gap-3 z-50 whitespace-nowrap"
                     >
-                        <span className="text-sm">
+                        <span className="text-base">
                             {activeActionMode === BattleAction.MOVE ? '🚶' : activeActionMode === BattleAction.ATTACK ? '⚔️' : activeActionMode === BattleAction.MAGIC ? '✨' : '🧪'}
                         </span>
-                        <span className="text-[11px] sm:text-xs font-bold text-amber-300 font-serif">
-                            {activeActionMode === BattleAction.MOVE ? 'Moverse — Toca una casilla' : activeActionMode === BattleAction.ATTACK ? 'Ataque — Toca objetivo' : activeActionMode === BattleAction.MAGIC ? 'Lanzar Conjuro — Toca objetivo' : 'Usar Objeto'}
-                        </span>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-amber-300 font-serif">
+                                {activeActionMode === BattleAction.MOVE ? 'Moverse — Toca una casilla' : activeActionMode === BattleAction.ATTACK ? 'Ataque — Toca objetivo' : activeActionMode === BattleAction.MAGIC ? 'Lanzar Conjuro — Toca objetivo' : 'Usar Objeto'}
+                            </span>
+                            <span className="text-[9px] text-slate-400">
+                                {activeActionMode === BattleAction.MOVE ? 'Casillas azules en rango' : 'Objetivos resaltados'}
+                            </span>
+                        </div>
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -308,9 +328,10 @@ export const BG3RadialMenu: React.FC<BG3RadialMenuProps> = ({
                                 onAction(null as any);
                                 setRadialMenuOpen(true);
                             }}
-                            className="ml-1 px-2 py-0.5 rounded-full bg-red-950/90 border border-red-500/60 text-red-300 text-[10px] font-mono font-bold hover:bg-red-900 active:scale-95 transition-all cursor-pointer shadow-md"
+                            className="ml-2 min-h-[44px] px-3.5 py-1.5 rounded-xl bg-red-950/90 border border-red-500/60 text-red-200 text-xs font-mono font-bold hover:bg-red-900 active:scale-95 transition-all cursor-pointer shadow-lg flex items-center gap-1"
                         >
-                            ✕ Cancelar
+                            <span>✕</span>
+                            <span>Cancelar</span>
                         </button>
                     </motion.div>
                 </AnimatePresence>
@@ -324,7 +345,7 @@ export const BG3RadialMenu: React.FC<BG3RadialMenuProps> = ({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -6, scale: 0.95 }}
                         transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                        className="absolute -top-[140px] left-1/2 -translate-x-1/2 w-[220px] sm:w-[250px] p-2 rounded-2xl border border-amber-500/40 bg-slate-950/90 backdrop-blur-2xl shadow-2xl flex flex-col gap-1 z-50 text-center"
+                        className="absolute -top-[140px] -left-[90px] w-[210px] sm:w-[240px] p-2 rounded-2xl border border-amber-500/40 bg-slate-950/95 backdrop-blur-2xl shadow-2xl flex flex-col gap-1 z-50 text-center"
                     >
                         <div className="flex justify-between items-center gap-1 border-b border-white/10 pb-1">
                             <span className="text-[10px] font-black uppercase text-amber-300 font-serif truncate">
@@ -341,21 +362,21 @@ export const BG3RadialMenu: React.FC<BG3RadialMenuProps> = ({
                 )}
             </AnimatePresence>
 
-            {/* Circular Radial Menu Container Centered on Active Unit */}
+            {/* Circular Radial Menu Container Centered on Thumb Hub */}
             <div className="relative w-0 h-0 flex items-center justify-center">
                 {/* Connecting Fan Rays from Center Hub to Radial Nodes */}
                 <svg className="absolute -left-[140px] -top-[140px] w-[280px] h-[280px] pointer-events-none z-10 overflow-visible">
                     <AnimatePresence>
                         {isOpen && currentRenderItems.map((item, index) => {
-                            const angle = (index / totalCount) * (2 * Math.PI) - (Math.PI / 2);
-                            const x = Math.cos(angle) * radius + 140;
-                            const y = Math.sin(angle) * radius + 140;
+                            const { x, y } = getItemPosition(index, totalCount);
+                            const svgX = x + 140;
+                            const svgY = y + 140;
 
                             return (
                                 <motion.line
                                     key={item.id}
                                     initial={{ x2: 140, y2: 140, opacity: 0 }}
-                                    animate={{ x2: x, y2: y, opacity: 0.4 }}
+                                    animate={{ x2: svgX, y2: svgY, opacity: 0.4 }}
                                     exit={{ x2: 140, y2: 140, opacity: 0 }}
                                     transition={{ type: 'spring', stiffness: 220, damping: 22 }}
                                     x1={140}
@@ -369,13 +390,10 @@ export const BG3RadialMenu: React.FC<BG3RadialMenuProps> = ({
                     </AnimatePresence>
                 </svg>
 
-                {/* Floating Translucent Radial Node Buttons in 360 Ring */}
+                {/* Floating Translucent Radial Node Buttons in Thumb Arc */}
                 <AnimatePresence mode="popLayout">
                     {isOpen && currentRenderItems.map((item, index) => {
-                        const angle = (index / totalCount) * (2 * Math.PI) - (Math.PI / 2);
-                        const x = Math.cos(angle) * radius;
-                        const y = Math.sin(angle) * radius;
-
+                        const { x, y } = getItemPosition(index, totalCount);
                         const isCurrentlySelected = 'actionId' in item && activeActionMode === item.actionId;
 
                         return (
@@ -410,7 +428,7 @@ export const BG3RadialMenu: React.FC<BG3RadialMenuProps> = ({
                                     transform: 'translate(-50%, -50%)'
                                 }}
                                 className={`
-                                    !w-12 !h-12 border-2 shadow-2xl active:scale-90 transition-all cursor-pointer touch-manipulation z-40
+                                    !w-12 !h-12 border-2 shadow-2xl active:scale-90 transition-all cursor-pointer touch-manipulation z-40 min-w-[48px] min-h-[48px]
                                     ${isCurrentlySelected ? item.activeGlow : ''}
                                 `}
                             />
@@ -432,7 +450,7 @@ export const BG3RadialMenu: React.FC<BG3RadialMenuProps> = ({
                         transform: 'translate(-50%, -50%)'
                     }}
                     className={`
-                        absolute left-0 top-0 w-13 h-13 rounded-full 
+                        absolute left-0 top-0 w-14 h-14 rounded-full min-w-[56px] min-h-[56px]
                         border-2 border-amber-400/90 bg-slate-950/90 backdrop-blur-2xl flex flex-col items-center justify-center 
                         shadow-2xl overflow-hidden cursor-pointer z-30 transition-all active:scale-90 touch-manipulation
                         ${isOpen ? 'ring-2 ring-amber-400/60 shadow-[0_0_16px_rgba(251,191,36,0.6)]' : 'shadow-black/90'}

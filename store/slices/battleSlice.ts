@@ -45,7 +45,9 @@ export interface BattleSlice {
   hoveredActionPreview: BattleAction | null;
   fogOfWarEnabled: boolean;
   showDangerZone: boolean;
+  battleSpeed: number;
 
+  setBattleSpeed: (speed: number) => void;
   setRadialMenuOpen: (open: boolean) => void;
   setHoveredActionPreview: (action: BattleAction | null) => void;
   toggleFogOfWar: () => void;
@@ -102,7 +104,9 @@ export const createBattleSlice: StateCreator<GameStore, [], [], BattleSlice> = (
   hoveredActionPreview: null,
   fogOfWarEnabled: true,
   showDangerZone: false,
+  battleSpeed: 1.0,
 
+  setBattleSpeed: (speed) => set({ battleSpeed: Math.max(0.5, Math.min(3.0, speed)) }),
   toggleFogOfWar: () => set(s => ({ fogOfWarEnabled: !s.fogOfWarEnabled })),
   toggleDangerZone: () => set(s => ({ showDangerZone: !s.showDangerZone })),
   setRadialMenuOpen: (open) => set({ isRadialMenuOpen: open }),
@@ -1086,6 +1090,10 @@ export const createBattleSlice: StateCreator<GameStore, [], [], BattleSlice> = (
     if (nextEntity.type === 'PLAYER') { 
       get().addLog(`${nextEntity.name}'s turn.`, "info"); 
     } else { 
+      const currentSpeed = get().battleSpeed || 1.0;
+      const invSpeed = 1 / currentSpeed;
+
+      // Phase 1: Camera focus & pacing breath
       setTimeout(() => { 
         const currentState = get(); 
         if (currentState.gameState !== GameState.BATTLE_TACTICAL) return; 
@@ -1095,12 +1103,27 @@ export const createBattleSlice: StateCreator<GameStore, [], [], BattleSlice> = (
           currentState.nextTurn(); 
           return; 
         } 
+
+        set({ isActionAnimating: true });
         const updates = performEnemyAction(currentState, me, targets, set); 
         if (updates) set(updates); 
+
         const hadDiceRoll = !!get().activeDiceRoll;
-        const delay = hadDiceRoll ? 1100 : 450;
-        setTimeout(() => get().nextTurn(), delay); 
-      }, 450); 
+        const hadSpell = !!get().activeSpellEffect;
+        const actionDuration = (hadDiceRoll ? 1150 : (hadSpell ? 900 : 550)) * invSpeed;
+
+        // Phase 2: Action animation and resolution duration
+        setTimeout(() => {
+          set({ isActionAnimating: false });
+
+          // Phase 3: Post-action grace period so results/popups are clear
+          setTimeout(() => {
+            get().clearDiceRoll();
+            get().nextTurn();
+          }, 350 * invSpeed);
+        }, actionDuration);
+
+      }, 400 * invSpeed); 
     } 
   },
   attemptRun: () => { const state = get(); const activeId = state.turnOrder[state.currentTurnIndex]; const activeEntity = state.battleEntities.find(e => e.id === activeId); if (activeEntity && activeEntity.stats.stamina < STAT_COSTS.RUN) { state.addLog("Too exhausted!", "combat"); return; } if (activeEntity) { const newStamina = activeEntity.stats.stamina - STAT_COSTS.RUN; set(s => ({ battleEntities: s.battleEntities.map(e => e.id === activeId ? { ...e, stats: { ...e.stats, stamina: newStamina } } : e) })); } const hpFactor = (activeEntity?.stats.hp || 1) / (activeEntity?.stats.maxHp || 1); const escapeChance = Math.min(0.95, Math.max(0.2, 0.5 + (hpFactor * 0.2))); if (Math.random() < escapeChance) { get().addLog("Escaped!", "narrative"); set({ gameState: GameState.OVERWORLD, damagePopups: [], gracePeriodEndTime: Date.now() + 5000 }); } else { get().addLog("Failed escape!", "combat"); get().nextTurn(); } },

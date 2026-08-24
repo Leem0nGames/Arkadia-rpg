@@ -22,7 +22,9 @@ export const SettingsModal: React.FC = () => {
     zoomSensitivity = 1.0,
     rotateSensitivity = 1.0,
     setGestureSensitivity,
-    resetCameraGesture
+    resetCameraGesture,
+    battleSpeed = 1.0,
+    setBattleSpeed
   } = useGameStore();
 
   const [activeTab, setActiveTab] = useState<'SETTINGS' | 'SAVE' | 'GUIDE'>('SETTINGS');
@@ -228,6 +230,48 @@ export const SettingsModal: React.FC = () => {
                         {theme.description}
                       </div>
                     </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section: Battle Speed & Animation Pacing */}
+          <div className={`p-4 rounded-xl border ${currentThemeConfig.classes.cardBg}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className={`text-sm uppercase font-bold tracking-widest flex items-center gap-2 ${currentThemeConfig.classes.accentText}`}>
+                  <span>⏩</span> Velocidad de Combate & Ritmo de Turnos
+                </h3>
+                <p className={`text-xs mt-0.5 ${currentThemeConfig.classes.subText}`}>
+                  Controla la cadencia de animaciones de dados, hechizos y turnos de la IA para un flujo más rápido y sin interrupciones.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { speed: 1.0, label: '1.0x', desc: 'Cinemático (Estándar)' },
+                { speed: 1.5, label: '1.5x', desc: 'Ágil (Recomendado)' },
+                { speed: 2.0, label: '2.0x', desc: 'Rápido (Táctico)' }
+              ].map(({ speed, label, desc }) => {
+                const isSelected = Math.abs(battleSpeed - speed) < 0.1;
+                return (
+                  <button
+                    key={speed}
+                    type="button"
+                    onClick={() => {
+                      sfx.playUiClick();
+                      setBattleSpeed(speed);
+                    }}
+                    className={`p-2.5 rounded-xl border text-center transition-all ${
+                      isSelected
+                        ? 'bg-amber-500/25 border-amber-400 text-amber-200 ring-2 ring-amber-400 shadow-md font-bold'
+                        : 'bg-slate-900/60 border-slate-700/80 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    <div className="text-sm font-black font-mono">{label}</div>
+                    <div className="text-[9px] text-slate-400 mt-0.5 leading-tight">{desc}</div>
                   </button>
                 );
               })}

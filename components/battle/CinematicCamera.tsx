@@ -3,10 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
 import { BATTLE_MAP_SIZE } from '../../constants';
-import { BattleCell, BattleAction } from '../../types';
-
-const easeInOutCubic = (t: number) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+import { BattleCell } from '../../types';
 
 export const CinematicCamera = () => {
   const {
@@ -15,37 +12,27 @@ export const CinematicCamera = () => {
     battleEntities,
     turnOrder,
     currentTurnIndex,
-    selectedTile,
-    selectedAction,
-    hoveredEntity,
     activeSpellEffect,
     screenShake,
     battleMap,
-    isRadialMenuOpen,
   } = useGameStore();
 
   const { camera, controls } = useThree();
   const center = BATTLE_MAP_SIZE / 2;
 
-  // Interaction tracking
+  // Interaction tracking & grace period
   const isInteractingRef = useRef(false);
+  const lastManualTimeRef = useRef(0);
 
-  // Transition tracking
-  const startLookAt = useRef(new THREE.Vector3());
-  const startCamPos = useRef(new THREE.Vector3());
-  const targetLookAt = useRef(new THREE.Vector3());
-  const targetCamPos = useRef(new THREE.Vector3());
+  // Smooth target positions
+  const targetLookAt = useRef(new THREE.Vector3(center, 1.0, center));
+  const targetCamPos = useRef(new THREE.Vector3(center, 12, center + 18));
   const targetFovVal = useRef(26);
-  const transitionProgress = useRef(1.0); // 1.0 = transition finished/inactive
 
   // Last state tracking for triggers
   const lastTurnIndex = useRef<number | null>(null);
-  const lastSelectedAction = useRef<BattleAction | null>(null);
   const lastDiceRoll = useRef<any>(null);
   const lastSpellEffect = useRef<any>(null);
-  const lastActionAnimating = useRef<boolean>(false);
-  const lastSelectedTile = useRef<any>(null);
-  const lastHoveredEntity = useRef<any>(null);
 
   const victoryAngleRef = useRef(0);
 
@@ -55,6 +42,8 @@ export const CinematicCamera = () => {
       const orbit = controls as any;
       orbit.target.set(center, 1.0, center);
       camera.position.set(center, 12, center + 18);
+      targetLookAt.current.set(center, 1.0, center);
+      targetCamPos.current.set(center, 12, center + 18);
       orbit.update();
     }
   }, [controls, camera, center]);
@@ -63,11 +52,12 @@ export const CinematicCamera = () => {
   useEffect(() => {
     const handleUserInteractionStart = () => {
       isInteractingRef.current = true;
-      transitionProgress.current = 1.0; // Instantly halt any automatic panning
+      lastManualTimeRef.current = Date.now();
     };
 
     const handleUserInteractionEnd = () => {
       isInteractingRef.current = false;
+      lastManualTimeRef.current = Date.now();
     };
 
     window.addEventListener('mousedown', handleUserInteractionStart, { passive: true });
@@ -101,44 +91,39 @@ export const CinematicCamera = () => {
       return cell ? (cell.offsetY || 0) + cell.height : 0.5;
     };
 
-    // Detect state-based triggers for auto-focusing
+    // Selective triggers: Only reframe on Turn Change or Major Combat Resolution (Dice Roll / Spell)
     let triggerFocus = false;
+    let isCombatImpact = false;
 
     if (currentTurnIndex !== lastTurnIndex.current) {
       lastTurnIndex.current = currentTurnIndex;
       triggerFocus = true;
     }
-    if (selectedAction !== lastSelectedAction.current) {
-      lastSelectedAction.current = selectedAction;
-      triggerFocus = true;
-    }
-    if (isActionAnimating !== lastActionAnimating.current) {
-      lastActionAnimating.current = isActionAnimating;
-      triggerFocus = true;
-    }
-    if (activeDiceRoll !== lastDiceRoll.current) {
+    if (activeDiceRoll && activeDiceRoll !== lastDiceRoll.current) {
       lastDiceRoll.current = activeDiceRoll;
       triggerFocus = true;
-    }
-    if (activeSpellEffect !== lastSpellEffect.current) {
-      lastSpellEffect.current = activeSpellEffect;
-      triggerFocus = true;
-    }
-    if (selectedTile?.x !== lastSelectedTile.current?.x || selectedTile?.z !== lastSelectedTile.current?.z) {
-      lastSelectedTile.current = selectedTile;
-      triggerFocus = true;
-    }
-    if (hoveredEntity?.id !== lastHoveredEntity.current?.id) {
-      lastHoveredEntity.current = hoveredEntity;
-      triggerFocus = true;
+      isCombatImpact = true;
+    } else if (!activeDiceRoll) {
+      lastDiceRoll.current = null;
     }
 
+    if (activeSpellEffect && activeSpellEffect !== lastSpellEffect.current) {
+      lastSpellEffect.current = activeSpellEffect;
+      triggerFocus = true;
+      isCombatImpact = true;
+    } else if (!activeSpellEffect) {
+      lastSpellEffect.current = null;
+    }
+
+    const timeSinceManual = Date.now() - lastManualTimeRef.current;
+    const isUnderManualControl = isInteractingRef.current || (timeSinceManual < 2200 && !isCombatImpact);
+
     // Process focus target calculation on trigger
-    if (triggerFocus && !isVictory && !isInteractingRef.current) {
+    if (triggerFocus && !isVictory && !isUnderManualControl) {
       let focusX = center;
       let focusY = 1.0;
       let focusZ = center;
-      let focusDist = 7.0;
+      let focusDist = 7.2;
       let focusFov = 26;
 
       if (activeEntity) {
@@ -149,11 +134,11 @@ export const CinematicCamera = () => {
         focusX = activeX;
         focusY = activeY + 1.1;
         focusZ = activeZ;
-        focusDist = 7.0;
+        focusDist = 7.2;
         focusFov = 26;
 
-        // 1. ACTIVE ATTACK / SPELL / DICE ROLL ANIMATION
-        if (activeDiceRoll || activeSpellEffect || isActionAnimating) {
+        // Active Attack / Spell / Dice Roll Action Close-Up
+        if (activeDiceRoll || activeSpellEffect) {
           let impactX = activeX;
           let impactZ = activeZ;
           let impactY = activeY;
@@ -169,77 +154,34 @@ export const CinematicCamera = () => {
             impactX = activeSpellEffect.endPos[0];
             impactY = activeSpellEffect.endPos[1];
             impactZ = activeSpellEffect.endPos[2];
-          } else if (selectedTile) {
-            impactX = selectedTile.x;
-            impactZ = selectedTile.z;
-            impactY = getCellY(impactX, impactZ);
           }
 
-          focusX = THREE.MathUtils.lerp(activeX, impactX, 0.75);
-          focusY = THREE.MathUtils.lerp(activeY, impactY, 0.75) + 1.1;
-          focusZ = THREE.MathUtils.lerp(activeZ, impactZ, 0.75);
-          focusDist = 4.5; // Action close-up!
-          focusFov = 22;
-        }
-        // 2. TARGETING MODE (ATTACK / MAGIC WITH HOVERED OR SELECTED TARGET)
-        else if (
-          selectedAction === BattleAction.ATTACK ||
-          selectedAction === BattleAction.MAGIC ||
-          (hoveredEntity && selectedAction !== BattleAction.MOVE) ||
-          (selectedTile && selectedAction !== BattleAction.MOVE)
-        ) {
-          let destX = activeX;
-          let destZ = activeZ;
-          let destY = activeY;
-
-          if (hoveredEntity && (hoveredEntity as any).position) {
-            destX = (hoveredEntity as any).position.x;
-            destZ = (hoveredEntity as any).position.y;
-            destY = getCellY(destX, destZ);
-          } else if (selectedTile) {
-            destX = selectedTile.x;
-            destZ = selectedTile.z;
-            destY = getCellY(destX, destZ);
-          }
-
-          focusX = (activeX + destX) * 0.5;
-          focusY = Math.max(activeY, destY) + 1.1;
-          focusZ = (activeZ + destZ) * 0.5;
-
-          const combatantDist = Math.hypot(destX - activeX, destZ - activeZ);
-          focusDist = Math.max(5.0, combatantDist * 0.8 + 2.0);
+          // Frame between attacker and defender with cinematic emphasis
+          focusX = THREE.MathUtils.lerp(activeX, impactX, 0.6);
+          focusY = THREE.MathUtils.lerp(activeY, impactY, 0.6) + 1.1;
+          focusZ = THREE.MathUtils.lerp(activeZ, impactZ, 0.6);
+          focusDist = 5.5;
           focusFov = 24;
-        }
-        // 3. TACTICAL MOVEMENT MODE
-        else if (selectedAction === BattleAction.MOVE) {
-          focusDist = 6.0;
-          focusFov = 26;
         }
       }
 
-      // Calculate new camera position preserving the user's custom azimuth angle
+      // Preserve player's current azimuth angle so the perspective stays aligned
       const relativeOffset = new THREE.Vector3().copy(camera.position).sub(orbit.target);
-      let azimuth = Math.atan2(relativeOffset.x, relativeOffset.z);
+      const azimuth = Math.atan2(relativeOffset.x, relativeOffset.z) || 0;
 
-      const elevation = Math.PI / 5.5; // beautiful ~32.7 degree tactical slant
+      const elevation = Math.PI / 5.5; // ~32.7 degree tactical slant
       const yOffset = Math.sin(elevation) * focusDist;
       const hDist = Math.cos(elevation) * focusDist;
 
       const newX = Math.sin(azimuth) * hDist;
       const newZ = Math.cos(azimuth) * hDist;
 
-      // Set starting transition states
-      startLookAt.current.copy(orbit.target);
-      startCamPos.current.copy(camera.position);
-
       targetLookAt.current.set(focusX, focusY, focusZ);
       targetCamPos.current.set(focusX + newX, focusY + yOffset, focusZ + newZ);
       targetFovVal.current = focusFov;
-
-      transitionProgress.current = 0.0;
     }
 
-    // VICTORY CINEMATIC: Slow orbit around party
+    // VICTORY CINEMATIC: Smooth orbit around victorious party
     if (isVictory) {
       victoryAngleRef.current += delta * 0.25;
       const avgPlayers = battleEntities.filter(e => e.type === 'PLAYER' && e.stats.hp > 0);
@@ -257,32 +199,31 @@ export const CinematicCamera = () => {
         orbit.update();
       }
     }
-    // Interpolate the camera auto-pan transition
-    else if (transitionProgress.current < 1.0) {
-      if (isInteractingRef.current) {
-        transitionProgress.current = 1.0; // Let go instantly
-      } else {
-        transitionProgress.current = Math.min(1.0, transitionProgress.current + delta * 2.2); // ~0.45 seconds glide
-        const t = easeInOutCubic(transitionProgress.current);
+    // Smooth, zero-jerk exponential damping towards target
+    else if (!isInteractingRef.current && timeSinceManual > 1200) {
+      const dampSpeed = isCombatImpact ? 5.5 : 4.0;
+      orbit.target.x = THREE.MathUtils.damp(orbit.target.x, targetLookAt.current.x, dampSpeed, delta);
+      orbit.target.y = THREE.MathUtils.damp(orbit.target.y, targetLookAt.current.y, dampSpeed, delta);
+      orbit.target.z = THREE.MathUtils.damp(orbit.target.z, targetLookAt.current.z, dampSpeed, delta);
 
-        orbit.target.lerpVectors(startLookAt.current, targetLookAt.current, t);
-        camera.position.lerpVectors(startCamPos.current, targetCamPos.current, t);
+      camera.position.x = THREE.MathUtils.damp(camera.position.x, targetCamPos.current.x, dampSpeed, delta);
+      camera.position.y = THREE.MathUtils.damp(camera.position.y, targetCamPos.current.y, dampSpeed, delta);
+      camera.position.z = THREE.MathUtils.damp(camera.position.z, targetCamPos.current.z, dampSpeed, delta);
 
-        if ('fov' in camera) {
-          const pCam = camera as THREE.PerspectiveCamera;
-          pCam.fov = THREE.MathUtils.lerp(pCam.fov, targetFovVal.current, t);
-          pCam.updateProjectionMatrix();
-        }
-
-        orbit.update();
+      if ('fov' in camera) {
+        const pCam = camera as THREE.PerspectiveCamera;
+        pCam.fov = THREE.MathUtils.damp(pCam.fov, targetFovVal.current, dampSpeed, delta);
+        pCam.updateProjectionMatrix();
       }
+
+      orbit.update();
     }
 
     // Apply Screen Shake Camera Jitter if screenShake active
     if (screenShake && screenShake > 0) {
-      const shakeIntensity = Math.min(1.5, screenShake * 0.22);
+      const shakeIntensity = Math.min(1.5, screenShake * 0.18);
       camera.position.x += (Math.random() - 0.5) * shakeIntensity;
-      camera.position.y += (Math.random() - 0.5) * shakeIntensity * 0.8;
+      camera.position.y += (Math.random() - 0.5) * shakeIntensity * 0.7;
       camera.position.z += (Math.random() - 0.5) * shakeIntensity;
     }
   });

@@ -139,26 +139,6 @@ export const BattleScene: React.FC<any> = React.memo(({ entities, weather, curre
                             anglePower={4} 
                         />
                         <ActiveTurnBeacon activeEntity={activeEntity} surfaceY={activeSurfaceY} />
-
-                        {/* Circular Radial Action Menu Anchored at Active Unit's 3D Position */}
-                        {(activeEntity.type === 'PLAYER' || activeEntity.isPlayerControlled) && gameState === GameState.BATTLE_TACTICAL && (
-                            <Html 
-                                position={[activeEntity.position.x, activeSurfaceY + 2.3, activeEntity.position.y]} 
-                                center 
-                                zIndexRange={[100, 0]}
-                            >
-                                <BG3RadialMenu
-                                    activeEntity={activeEntity}
-                                    hasMoved={hasMoved}
-                                    hasActed={hasActed}
-                                    activeActionMode={selectedAction}
-                                    onAction={(action) => selectAction(action)}
-                                    onWait={() => nextTurn()}
-                                    onRun={() => attemptRun()}
-                                    themeConfig={getThemeConfig(uiTheme)}
-                                />
-                            </Html>
-                        )}
                     </>
                 )}
 

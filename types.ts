@@ -219,6 +219,7 @@ export interface GameStateData {
     activeSpellEffect: SpellEffectData | null;
     isActionAnimating: boolean;
     isSkillSelectionMode: boolean; 
+    battleSpeed?: number; // 1.0 = Normal, 1.5 = Fast, 2.0 = Ultra
     quests: Quest[];
     activeNarrativeEvent: NarrativeEvent | null;
     activeNarrativeOutcome: string | null;

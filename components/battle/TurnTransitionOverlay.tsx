@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Entity } from '../../types';
 import { sfx } from '../../services/SoundSystem';
 import { UnitPortrait } from '../ui/UnitPortrait';
+import { useGameStore } from '../../store/gameStore';
 
 interface TurnTransitionOverlayProps {
   currentTurnEntityId: string;
@@ -13,6 +14,7 @@ export const TurnTransitionOverlay: React.FC<TurnTransitionOverlayProps> = ({
   currentTurnEntityId,
   entities
 }) => {
+  const battleSpeed = useGameStore((state) => state.battleSpeed) || 1.0;
   const [activeTurn, setActiveTurn] = useState<{
     id: string;
     entity: Entity | null;
@@ -60,17 +62,17 @@ export const TurnTransitionOverlay: React.FC<TurnTransitionOverlayProps> = ({
         // Ignore audio errors silently
       }
 
-      // Fast auto-hide (800ms max vs previous 2200ms!)
+      // Fast auto-hide scaled with battle speed
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => {
         setIsVisible(false);
-      }, 800);
+      }, Math.max(400, 750 / battleSpeed));
     }
 
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
-  }, [currentTurnEntityId, entities]);
+  }, [currentTurnEntityId, entities, battleSpeed]);
 
   if (!activeTurn || !activeTurn.entity) return null;
 
