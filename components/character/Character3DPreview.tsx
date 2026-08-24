@@ -51,7 +51,7 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
               <div 
                 className="w-full h-full pixelated"
                 style={{
-                  backgroundImage: `url(/assets/fighter/fighter_walk.png)`,
+                  backgroundImage: `url(/assets/players/fighter/fighter_walk.png)`,
                   backgroundSize: '400% 400%',
                   backgroundPosition: '0% 0%', // Top-left frame
                   imageRendering: 'pixelated'

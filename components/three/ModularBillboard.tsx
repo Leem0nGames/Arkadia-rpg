@@ -204,8 +204,8 @@ export const ModularBillboard: React.FC<ModularBillboardProps> = ({
         } else if (lowerUrl.includes('fighter')) {
             const isCombatState = isAttacking || isCasting || isFlashing || hp <= 0 || isCurrentTurn;
             return isCombatState
-                ? '/assets/fighter/fighter_battle.png'
-                : '/assets/fighter/fighter_walk.png';
+                ? '/assets/players/fighter/fighter_battle.png'
+                : '/assets/players/fighter/fighter_walk.png';
         }
         return safeUrl;
     }, [safeUrl, isAttacking, isCasting, isFlashing, hp, isCurrentTurn]);

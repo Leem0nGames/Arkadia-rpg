@@ -79,7 +79,7 @@ export const UnitPortrait: React.FC<UnitPortraitProps> = React.memo(({ entity, c
                 <div 
                     className="w-full h-full pixelated scale-125"
                     style={{
-                        backgroundImage: `url(/assets/fighter/fighter_walk.png)`,
+                        backgroundImage: `url(/assets/players/fighter/fighter_walk.png)`,
                         backgroundSize: '380% 380%',
                         backgroundPosition: '10% 8%', // Upper body frame
                         imageRendering: 'pixelated'

@@ -364,7 +364,7 @@ export const HexMapSVGOverlay: React.FC<HexMapSVGOverlayProps> = ({
         const sanitizedPlayerSprite = sanitizeAssetUrl(playerSprite) || null;
         const activeSpriteUrl = isPriest 
           ? '/assets/players/priest/spritesheetpriest.png' 
-          : (isFighter ? '/assets/fighter/fighter_walk.png' : sanitizedPlayerSprite);
+          : (isFighter ? '/assets/players/fighter/fighter_walk.png' : sanitizedPlayerSprite);
 
         return (
           <g 

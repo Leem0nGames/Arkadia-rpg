@@ -163,7 +163,7 @@ export const ASSETS = {
         NECROMANCER: `${WESNOTH_BASE_URL}/units/undead-necromancers/dark-sorcerer.png`,
         WOLF: `${WESNOTH_BASE_URL}/units/monsters/wolf.png`,
         
-        PLAYER_FIGHTER: '/assets/fighter/fighter_walk.png',
+        PLAYER_FIGHTER: '/assets/players/fighter/fighter_walk.png',
         PLAYER_WIZARD: `${WESNOTH_BASE_URL}/units/human-magi/red-mage.png`,
         PLAYER_ROGUE: `${WESNOTH_BASE_URL}/units/human-outlaws/thief.png`,
         PLAYER_CLERIC: '/assets/players/priest/priest_chibi.png',
