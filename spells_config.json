@@ -1,0 +1,22 @@
+{
+  "spells": {
+    "MAGIC_MISSILE": { "id": "magic_missile", "name": "Magic Missile", "level": 1, "type": "DAMAGE", "diceCount": 3, "diceSides": 4, "description": "Fires 3 missiles.", "range": 6, "manaCost": 1 },
+    "CURE_WOUNDS": { "id": "cure_wounds", "name": "Cure Wounds", "level": 1, "type": "HEAL", "diceCount": 1, "diceSides": 8, "description": "Heals a creature.", "range": 1, "manaCost": 1 },
+    "FIREBALL": { "id": "fireball", "name": "Fireball", "level": 3, "type": "DAMAGE", "diceCount": 8, "diceSides": 6, "description": "Explosive fire.", "range": 6, "manaCost": 3 },
+    "THUNDERWAVE": { "id": "thunderwave", "name": "Thunderwave", "level": 1, "type": "DAMAGE", "diceCount": 2, "diceSides": 8, "description": "Thunderous force.", "range": 2, "manaCost": 1 },
+    "FIRE_BOLT": { "id": "firebolt", "name": "Fire Bolt", "level": 0, "type": "DAMAGE", "diceCount": 1, "diceSides": 10, "description": "Hurls a mote of fire.", "range": 12, "manaCost": 0 }
+  },
+  "classSpells": {
+    "Wizard": ["FIRE_BOLT", "MAGIC_MISSILE", "FIREBALL"],
+    "Cleric": ["CURE_WOUNDS"],
+    "Fighter": [],
+    "Rogue": [],
+    "Ranger": [],
+    "Barbarian": [],
+    "Paladin": ["CURE_WOUNDS"],
+    "Sorcerer": ["FIRE_BOLT", "MAGIC_MISSILE"],
+    "Warlock": ["FIRE_BOLT", "MAGIC_MISSILE"],
+    "Druid": ["CURE_WOUNDS", "THUNDERWAVE"],
+    "Bard": ["CURE_WOUNDS", "THUNDERWAVE"]
+  }
+}

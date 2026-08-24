@@ -1,0 +1,3 @@
+## 2025-08-21 - Priority Queue for A* Pathfinding and Leaf UI Memoization
+**Learning:** In grid-based pathfinding (`services/pathfinding.ts`), sorting `openSet` on every iteration and linearly scanning open nodes leads to $O(N^2 \log N)$ complexity. A custom `MinHeap` and `Map` lookup reduces operations to $O(\log N)$ push/pop and $O(1)$ lookups. Additionally, frequently rendered leaf components like `ItemRarityFrame` and `UnitPortrait` benefit significantly from `React.memo` to avoid re-rendering across large grids during state updates.
+**Action:** Always prefer min-heaps over array sorting for priority queues in search loops, and ensure leaf components rendered inside lists/grids are wrapped in `React.memo`.
